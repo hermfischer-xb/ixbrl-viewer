@@ -52,10 +52,15 @@ seams were added:
        `.ixbrl-element` overlay per fact over its MCID glyph rectangles.
      - **image** (`xbrl:pdfImageLocatorType`: `xbrl:pdfPage` + `xbrl:pdfBBox`
        "x0 y0 x1 y1", origin lower-left) — a single overlay per unique
-       page+bbox, i.e. **region-level** highlighting: one embedded chart image is
-       referenced by many facts (the SEC Tailored Shareholder Report pattern), so
-       all of them share one overlay (their vuids all land in its `ivids`) —
-       selecting any highlights the chart, clicking it surfaces the set.
+       page+bbox. Two producers share this path: a chart **image** referenced by
+       many facts gives **region-level** highlighting (the SEC Tailored Shareholder
+       Report pattern) — all those facts share one overlay (their vuids all land in
+       its `ivids`), selecting any highlights the chart and clicking it surfaces the
+       set; and a **sub-MCID text value** whose bbox is its own glyph rectangle
+       (emitted by `alignFactsToPdf` when a fact is only a portion of a coarse
+       row-grained MCID) gives **per-value** highlighting — its bbox is unique, so it
+       gets its own overlay. The viewer treats both identically; only the granularity
+       of the source bbox differs.
      - **form field** (`xbrl:pdfFormFieldLocatorType`: `xbrl:pdfFormField`, a PDF
        AcroForm field name, with **no page number**) — the field's page,
        rectangle and value are discovered via PDF.js `getFieldObjects()` (one
