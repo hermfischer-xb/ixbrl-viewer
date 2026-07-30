@@ -166,12 +166,19 @@ There are four ways to point the viewer at a model:
    The document is resolved from the model's `sourceMappings` (or an explicit
    `document`).  (A *compiled model* is auto-detected: it carries `concepts` /
    `labels` / `cubes` alongside its `facts`.)
-3. **A URL argument** — `…/index.html?xbrlModel=<url>` opens a model (compiled or
+3. **URL arguments** — `…/index.html?xbrlModel=<url>` opens a model (compiled or
    factset) with **no config file at all**, so a plain viewer bundle can be
-   pointed at any served model:
+   pointed at any served model.  The document and taxonomy can be given the same
+   way with `document` and (for a factset) `taxonomy` arguments:
    ```
    http://localhost:8000/index.html?xbrlModel=aapl-compiled.json
+   http://localhost:8000/index.html?xbrlModel=paclife-complete.json&document=paclife.pdf
+   http://localhost:8000/index.html?xbrlModel=aapl-factset.json&document=aapl.pdf&taxonomy=aapl-taxonomy.json
    ```
+   Each argument is a URL relative to `index.html` (an absolute `http(s)://…` URL
+   works too, e.g. a PDF served elsewhere).  A URL argument overrides the same key
+   in the config; the document otherwise falls back to the config's `document`,
+   then the model's own `sourceMappings`.
 4. **A local-file chooser** — with an `xbrlModel` block but no `model`/`factset`
    and no URL argument (e.g. `{ "xbrlModel": {} }`), the viewer shows a chooser.
    Pick a compiled model `.json` from disk, and — when its source document (HTML

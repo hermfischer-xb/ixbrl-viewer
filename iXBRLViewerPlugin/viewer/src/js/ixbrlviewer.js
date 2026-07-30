@@ -505,6 +505,10 @@ export class iXBRLViewer {
         const inspector = this.inspector;
         const m = modelDoc.xbrlModel ?? {};
         const di = modelDoc.documentInfo ?? {};
+        // URL arguments can override the config for the document and taxonomy (as ?xbrlModel=
+        // overrides the model), so a plain viewer bundle can be pointed at specific files:
+        //   index.html?xbrlModel=model.json&document=report.pdf[&taxonomy=tax.json]
+        const params = new URLSearchParams(window.location.search);
 
         // A compiled model carries taxonomy structures alongside its facts.
         const isCompiled = m.concepts !== undefined || m.labels !== undefined || m.cubes !== undefined;
@@ -517,7 +521,7 @@ export class iXBRLViewer {
             // Factset: resolve its converted taxonomy (config, else the
             // importMapping entry matching the document namespace prefix),
             // relative to the model URL.
-            let taxonomyRel = cfg.taxonomy;
+            let taxonomyRel = params.get("taxonomy") ?? cfg.taxonomy;
             if (!taxonomyRel) {
                 const nsPrefix = di.documentNamespacePrefix;
                 for (const [key, url] of Object.entries(di.importMapping ?? {})) {
@@ -559,7 +563,8 @@ export class iXBRLViewer {
             documentFile = docSource.filename;
         }
         else {
-            const documentRel = cfg.document
+            const documentRel = params.get("document")
+                ?? cfg.document
                 ?? mappings.find(sm => sm.url && wantsExt.test(sm.url))?.url
                 ?? mappings.find(sm => sm.url)?.url;
             if (!documentRel) {
