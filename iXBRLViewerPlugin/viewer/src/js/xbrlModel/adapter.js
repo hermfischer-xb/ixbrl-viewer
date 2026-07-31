@@ -95,6 +95,24 @@ function cleanGroupLabel(name) {
 // parent group; target = a child group) in relationship order.  Only cube contents are
 // carried as leaves; a section whose subtree contains no cube is hidden by the consumer.
 // Returns null when the model carries no group tree (viewer falls back to the flat cube list).
+// A section's sort key: the leading role code in its label -- IFRS/ESEF labels
+// begin with a bracketed code, e.g. "[210000] Statement of financial position"
+// (or a bare number). Sort by that code so the sections read in numeric order.
+// Labels without a code (e.g. US-GAAP, whose "NNNN - Type -" prefix is stripped)
+// get a sentinel and, because the sort is stable, keep their existing order.
+function sectionSortKey(node) {
+    const m = /^\s*\[?(\d{3,})\]?/.exec(node.label || "");
+    return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+}
+
+function sortSectionNodes(nodes) {
+    nodes.sort((a, b) => sectionSortKey(a) - sectionSortKey(b));
+    for (const n of nodes) {
+        sortSectionNodes(n.children);
+    }
+    return nodes;
+}
+
 function buildSections(taxonomy, labelsByObject) {
     const groups = taxonomy.groups ?? [];
     const groupTree = taxonomy.groupTree;
@@ -138,6 +156,7 @@ function buildSections(taxonomy, labelsByObject) {
             roots.push(nodeByName[g.name]);
         }
     }
+    sortSectionNodes(roots); // numeric-code order (IFRS/ESEF); stable no-op for un-coded labels
     return roots.length ? roots : null;
 }
 
@@ -516,7 +535,10 @@ function buildFacts(factset) {
             continue;
         }
 
-        // No document locator (e.g. a hidden fact): skipped for now.
+        // No document locator at all -- an ix:hidden fact (e.g. dei:EntityCentralIndexKey)
+        // never linked to display text. Keep it so the surface can register it as a
+        // hidden fact (browsable in the fact list) rather than dropping it.
+        facts["hf-" + (pdfKeyCounter++)] = makeFactData();
     }
     return facts;
 }

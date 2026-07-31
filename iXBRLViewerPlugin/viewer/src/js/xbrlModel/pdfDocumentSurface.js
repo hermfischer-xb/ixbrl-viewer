@@ -382,7 +382,10 @@ export class PdfDocumentSurface {
             }
 
             if (!located) {
-                delete facts[key];
+                // Not on this PDF: an html-fallback fact (its html id isn't in the
+                // PDF) or an ix:hidden fact. Register it as a HIDDEN fact so it is
+                // still browsable in the fact list rather than dropped.
+                tasks.push({ type: "hidden", sortKey: Number.MAX_SAFE_INTEGER, key, factData });
             }
         }
         for (const region of Object.values(imageRegions)) {
@@ -397,10 +400,26 @@ export class PdfDocumentSurface {
             else if (task.type === "image") {
                 this._bindImageRegion(viewer, doc, reportIndex, task.region, facts);
             }
+            else if (task.type === "hidden") {
+                this._bindHiddenFact(viewer, reportIndex, task.key, task.factData);
+            }
             else {
                 this._bindFormFieldFact(viewer, doc, reportIndex, task, facts);
             }
         }
+    }
+
+    // A fact with no location on this PDF (html-fallback or ix:hidden): register an
+    // IXNode with no overlay nodes and isHidden=true, so it appears in the fact
+    // list / search / hidden-fact count but has nothing to highlight on the page.
+    _bindHiddenFact(viewer, reportIndex, key, factData) {
+        const vuid = viewerUniqueId(reportIndex, key);
+        const ixn = viewer._getOrCreateIXNode(vuid, $([]), 0, false);
+        ixn.isHidden = true;
+        ixn._htmlHiddenCache = false;
+        viewer._docOrderItemIndex.addItem(vuid, 0);
+        viewer.itemContinuationMap[vuid] = [];
+        applyFactValue(factData, ixn, "");
     }
 
     // Map AcroForm field name -> { page (1-based), rect (user-space), value } via
