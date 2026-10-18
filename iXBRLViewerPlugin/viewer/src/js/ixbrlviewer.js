@@ -586,7 +586,12 @@ export class iXBRLViewer {
 
         // Resolve the source document: content from the chooser, else the
         // sourceMapping/config URL matching the intended surface.
-        const mappings = di.sourceMappings ?? [];
+        // A source bound to a fact source whose fact map has a template (a tableTemplate reading
+        // CSV, a JSON or XML template map) is data the model's facts were read from, not a
+        // document to render.
+        const templateMaps = new Set((layoutModel.factMaps ?? []).filter(fm => fm.templateName).map(fm => fm.name));
+        const dataSources = new Set((layoutModel.factSources ?? []).filter(fs => templateMaps.has(fs.factMapName)).map(fs => fs.name));
+        const mappings = (di.sourceMappings ?? []).filter(sm => !dataSources.has(sm.sourceName));
         const wantsExt = hasPdfFacts ? /\.pdf(\?|#|$)/i : /\.html?(\?|#|$)/i;
         let docSource = documentSource;
         let documentFile;
