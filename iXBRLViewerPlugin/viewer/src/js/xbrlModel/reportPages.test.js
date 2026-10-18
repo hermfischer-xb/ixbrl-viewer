@@ -148,4 +148,21 @@ describe('reportPages', () => {
         expect(cell.text).toBe('NOTE 1 — Policies & more');
         expect(cell.block).toBe(true);
     });
+
+    test('an EDGAR-transposed role (Form SD payments): concepts across, members down, Total first', () => {
+        const m = model([
+            fact('p1', 'ex:Revenue', FY25, '5000', { unit: 'iso4217:USD', decimals: 0, dims: { 'ex:SegmentAxis': 'ex:SegmentA' } }),
+            fact('p2', 'ex:Costs', FY25, '7000', { unit: 'iso4217:USD', decimals: 0 }),
+            fact('p3', 'ex:Revenue', FY25, '9000', { unit: 'iso4217:USD', decimals: 0 }),
+        ]);
+        m.groups = [{ name: 'ex:Income', groupURI: 'http://xbrl.sec.gov/rxp/role/ByProject' }];
+        const page = reportPages(m).reports[0];
+        expect(page.transposed).toBe(true);
+        expect(page.title).toBe('INCOME STATEMENT - 12 months ended Jun. 30, 2025 - USD ($) $ in Units');
+        expect(page.headerRows).toEqual([[{ text: 'Revenue', colSpan: 1 }, { text: 'Less costs', colSpan: 1 }]]);
+        expect(page.rows.map(r => [r.label, ...r.cells.map(c => c.text)])).toEqual([
+            ['Total', '$ 9,000', '$ (7,000)'], ['Segment A [Member]', '$ 5,000', ''],
+        ]);
+    });
 });
+

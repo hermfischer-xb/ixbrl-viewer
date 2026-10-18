@@ -414,8 +414,10 @@ nothing to tag.
 
 ## Report pages surface (R-file style)
 
-A report filed as XBRL rather than inline XBRL — SEC filings before inline XBRL was phased in from 2019 — and
-facts loaded on their own — has no document to show its facts on, and no grid
+A report filed as XBRL rather than inline XBRL — SEC filings before inline XBRL was phased in
+from 2019, and still today Form SD (resource extraction payments: all 67 plain-XBRL filings in
+EDGAR's September 2026 XBRL feed were SDs); some other jurisdictions (Spain) also still receive plain
+XBRL — and facts loaded on their own have no document to show their facts on, and no grid
 layouts.  `ReportDocumentSurface` shows it the way SEC's EDGAR renderer shows a
 filing: a menu of its groups by category (Cover, Financial Statements, Notes, Policies,
 Tables, Details — the `groupTree` the legacy loader writes from the role definitions)
@@ -438,6 +440,11 @@ Tavi model, and the inspector takes the place of their pop-ups.
   "Jun. 30, 2025" headings with a heading row of member labels when there are members.
   An instant at a duration's end is shown in that duration's column (on a
   periodStartLabel line, an instant at its start).
+- **Transposed roles**: as the EDGAR renderer does for them by role
+  (`Embedding.generateStandardEmbeddedCommandsFromPresentationGroup`), Form SD's payment roles
+  (`rxp/role/ByCategory`, `ByProject`, `ByGovernment`, `Detail`), the filing-fee tables and
+  share repurchase details are laid out with the concepts across and the member combinations
+  down ("Total" first), the period in the title.
 - **Values**: amounts are scaled to the decimals most of a unit's facts have, and the
   title says so ("USD ($) $ in Millions"); a negated label shows the negative, a
   negative is in parentheses, a percent item is a percentage; the currency symbol is on
@@ -452,6 +459,11 @@ balance sheet 62/66).  What is not covered, from EDGAR's renderer: dropping colu
 judges incidental to a statement (a quarterly column on the annual income statement),
 member rows instead of member columns on detail pages, the transposed equity statement,
 per-element scaling, flow-through and parenthetical merging, and footnotes.
+
+Chevron's Form SD for 2025 (0000093410-26-000186): 5 pages like EDGAR's 5 R pages (Document
+Information; Payments by Category, by Project, by Government, Details), 1,183 facts in 1,197
+cells, ready in about 5 s.  A member that is a fact's value (SD's resource and segment) needs its
+label in the saved model: report-mode pruning keeps the objects fact values name.
 
 The pages need the filer's labels and preferred labels: the legacy loader carries every
 label role `core.json` declares a `labelType` for, and `xbrl:preferredLabel` on parent-

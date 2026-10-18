@@ -127,6 +127,7 @@ export function reportPages(model, options = {}) {
         cubes: new Map((model.cubes ?? []).map(c => [c.name, c])),
         domainNetworks: new Map((model.domainNetworks ?? []).map(d => [d.name, d])),
         units: new Map((model.units ?? []).map(u => [u.name, u])),
+        groups: new Map((model.groups ?? []).map(g => [g.name, g])),
         factsByConcept,
         label,
         memberLabel: enumerationLabels(model, label),
@@ -283,8 +284,11 @@ export function reportPage(groupName, groupObjects, index) {
         }
     }
 
-    const columns = pageColumns(pageFacts);
     const scales = unitScales(pageFacts, index);
+    if (TRANSPOSED_ROLES.test(index.groups.get(groupName)?.groupURI ?? '')) {
+        return transposedPage(groupName, nodes, pageFacts, scales, index);
+    }
+    const columns = pageColumns(pageFacts);
 
     // rows, with each line's facts in their columns
     const rows = nodes.map(node => {
@@ -331,11 +335,80 @@ export function reportPage(groupName, groupObjects, index) {
     }
     const pageRows = rows.filter((_, i) => shown[i]);
 
-    // A currency symbol, as the EDGAR renderer shows it: down each column, on the first and the
-    // last number of each run of numbers in the same unit.
-    columns.forEach((col, ci) => {
+    applyCurrencySymbols(pageRows, columns.length);
+
+    const groupLabel = label(groupName) ?? groupName.split(':').pop();
+    return {
+        name: groupName,
+        label: groupLabel,
+        title: scales.heading ? `${groupLabel} - ${scales.heading}` : groupLabel,
+        headerRows: headerRows(columns, label),
+        columns: columns.map(c => ({ period: c.period, members: c.dims })),
+        rows: pageRows,
+    };
+}
+
+/*
+ * Roles the EDGAR renderer lays out with the concepts across and the members (and period) down,
+ * as its Embedding.generateStandardEmbeddedCommandsFromPresentationGroup does: resource extraction
+ * payments (Form SD), filing fee tables, share repurchase details.
+ */
+const TRANSPOSED_ROLES = /\/rxp\/role\/(Detail|ByCategory|ByProject|ByGovernment)$|\/ffd\/main\/role\/(feesOffering|feesOffset|feesByCmbdPrspcts)|ShareRepurchase.*Detail/i;
+
+/*
+ * A transposed page: a column per line concept (with a fact on the page), a row per member
+ * combination (and period, when there is more than one) in the order of the facts, the
+ * combination with no members first as "Total".  The period, when there is one, is in the
+ * title, as the EDGAR renderer puts it.
+ */
+function transposedPage(groupName, nodes, pageFacts, scales, index) {
+    const { label } = index;
+    const lines = nodes.filter(n => n.kind === 'line' && pageFacts.some(f => f.factDimensions['xbrl:concept'] === n.name));
+    const periods = [...new Set(pageFacts.map(f => f.factDimensions['xbrl:period']))];
+    const rowKey = (fact) => dimsKey(factDims(fact)) + (periods.length > 1 ? `|${fact.factDimensions['xbrl:period']}` : '');
+    const rowsByKey = new Map();
+    for (const fact of pageFacts) {
+        const key = rowKey(fact);
+        if (!rowsByKey.has(key)) {
+            const dims = factDims(fact);
+            const memberText = dims.map(([d, m]) => label(m) ?? String(m)).join(' | ');
+            const period = parsePeriod(fact.factDimensions['xbrl:period']);
+            const periodText = periods.length > 1 && period ? displayDate(period.end) : '';
+            rowsByKey.set(key, { kind: 'line', depth: 0, dims, label: [memberText || 'Total', periodText].filter(Boolean).join(' | '),
+                cells: lines.map(() => ({ facts: [], text: '', numeric: false, negative: false })) });
+        }
+        const li = lines.findIndex(l => l.name === fact.factDimensions['xbrl:concept']);
+        const cell = rowsByKey.get(key).cells[li];
+        cell.facts.push(fact.name);
+        if (cell.facts.length === 1) {
+            Object.assign(cell, cellValue(fact, /negated/i.test(lines[li].preferred ?? ''), scales, index, index.concepts.get(lines[li].name)));
+        }
+    }
+    const rows = [...rowsByKey.values()].sort((a, b) => (a.dims.length === 0 ? 0 : 1) - (b.dims.length === 0 ? 0 : 1));
+    rows.forEach(r => delete r.dims);
+    applyCurrencySymbols(rows, lines.length);
+    const groupLabel = label(groupName) ?? groupName.split(':').pop();
+    const period = periods.length === 1 ? parsePeriod(periods[0]) : null;
+    const periodText = period ? (period.start ? `${durationHeading(period).toLowerCase()} ${displayDate(period.end)}` : displayDate(period.end)) : null;
+    return {
+        name: groupName,
+        label: groupLabel,
+        title: [groupLabel, periodText, scales.heading].filter(Boolean).join(' - '),
+        headerRows: [lines.map(l => ({ text: l.label, colSpan: 1 }))],
+        columns: lines.map(l => ({ concept: l.name })),
+        rows,
+        transposed: true,
+    };
+}
+
+/*
+ * A currency symbol, as the EDGAR renderer shows it: down each column, on the first and the last
+ * number of each run of numbers in the same unit.
+ */
+function applyCurrencySymbols(rows, columnCount) {
+    for (let ci = 0; ci < columnCount; ci++) {
         let previous = null;
-        for (const row of pageRows) {
+        for (const row of rows) {
             const cell = row.cells?.[ci];
             if (!cell?.numeric) {
                 continue;
@@ -351,8 +424,8 @@ export function reportPage(groupName, groupObjects, index) {
         if (previous !== null) {
             previous.showSymbol = true;
         }
-    });
-    for (const row of pageRows) {
+    }
+    for (const row of rows) {
         for (const cell of row.cells ?? []) {
             if (cell.showSymbol && cell.symbol) {
                 cell.text = `${cell.symbol} ${cell.text}`;
@@ -362,16 +435,6 @@ export function reportPage(groupName, groupObjects, index) {
             delete cell.unit;
         }
     }
-
-    const groupLabel = label(groupName) ?? groupName.split(':').pop();
-    return {
-        name: groupName,
-        label: groupLabel,
-        title: scales.heading ? `${groupLabel} - ${scales.heading}` : groupLabel,
-        headerRows: headerRows(columns, label),
-        columns: columns.map(c => ({ period: c.period, members: c.dims })),
-        rows: pageRows,
-    };
 }
 
 // The page's columns from its facts' periods and members (see reportPage).
