@@ -164,7 +164,8 @@ async surface.bindFacts(viewer) → void
 - **XbrlModel use:** `HtmlDocumentSurface` / `PdfDocumentSurface` (already written;
   lazy PDF rendering, `disableRange`, font/cmap handling, etc.), and
   `TableDocumentSurface`, whose `loadDocuments` generates the document from the
-  model's grid layouts instead of loading one.
+  model's grid layouts instead of loading one, and `ReportDocumentSurface`, which
+  generates report pages from the model's groups, networks and cubes.
 
 #### Surface ↔ Viewer contract (the Viewer methods a surface may call in `bindFacts`)
 These become the documented, stable "surface API" of `Viewer`:
@@ -295,6 +296,7 @@ This is the current `loadXbrlModel()` generalised: the XbrlModel-specific logic
 
 ### Self-contained `xbrlModel/` modules (move as-is into the plugin package)
 `adapter.js`, `htmlDocumentSurface.js`, `pdfDocumentSurface.js`, `tableDocumentSurface.js`, `gridLayout.js`,
+`reportDocumentSurface.js`, `reportPages.js`,
 `xbrlModelViewer.js`, `surfaceUtil.js`, `pdfjsLoader.js`, `xbrlModelChooser.js`.
 
 The model-source resolution and document-content handling added to
@@ -318,6 +320,8 @@ xbrl-model-plugin/
 │   ├── pdfDocumentSurface.js
 │   ├── tableDocumentSurface.js
 │   ├── gridLayout.js
+│   ├── reportDocumentSurface.js
+│   ├── reportPages.js
 │   ├── surfaceUtil.js
 │   ├── pdfjsLoader.js
 │   └── cubesPanel.js     # d6v-style inspector panel (from the inspector.* edits)
@@ -369,7 +373,7 @@ targets the current inspector.
 - Demos: `iXBRLViewerPlugin/viewer/demo-xbrl-model/` (symlinked bundle + data;
   HTML/PDF/L'Oreal + SEC N-CSR configs). Build with a throwaway git tag
   (`version.js` runs `git describe --tags`). node/npm at `/usr/local/bin`.
-- Working features to preserve: HTML, PDF & table surfaces, lazy PDF rendering + memory
+- Working features to preserve: HTML, PDF, table & report-pages surfaces, lazy PDF rendering + memory
   cap, numeric value reconstruction (`surfaceUtil.parseNumericValue`), the Cubes
   panel as a **groupTree-driven section tree** with numeric-code (`[NNNNNN]`)
   section sort and single-cube-section collapse, **hidden/unlocated-fact

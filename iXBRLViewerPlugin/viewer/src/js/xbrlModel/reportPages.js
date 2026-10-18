@@ -2,7 +2,7 @@
 
 /*
  * Report pages: a model's facts shown, group by group, as the pages of a financial report, for
- * a model with no document to show them on and no grid layouts to place them in -- an XBRL-XML
+ * a model with no document to show them on and no grid layouts to place them in -- an xBRL-XML
  * (not inline) filing, or facts loaded on their own.
  *
  * The pages follow the familiar form of SEC's EDGAR renderer ("R files"): a menu of the

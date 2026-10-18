@@ -12,7 +12,9 @@ inline XBRL), binds facts by `xbrl:htmlElementId` / `xbrl:pdfMcid` (and, for an 
 document with no ids, by positional `xbrlx:htmlElementPointer` locators), and adds a
 **Cubes** navigation panel. A report with no document (a prudential report is its
 templates) is shown in the grid layouts of its model's data tables, a third surface
-generated from the model. It reuses the existing report model and inspector.
+generated from the model; one with neither a document nor layouts (an xBRL-XML filing,
+such as SEC's Form SD) as report pages in the form of EDGAR's R files, a fourth. It
+reuses the existing report model and inspector.
 Working today against Apple's 10-K (HTML and PDF), L'Oreal's 452-page PDF, and
 large multi-fund SEC N-CSRs, with lazy PDF rendering.
 

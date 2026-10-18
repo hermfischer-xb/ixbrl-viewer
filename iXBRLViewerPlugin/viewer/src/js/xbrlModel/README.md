@@ -6,7 +6,7 @@ XbrlModel OIM model — a **compiled factset-with-taxonomy**, or a separate
 instead of the embedded inline-XBRL JSON.  A report with no document of its own,
 such as a prudential report (which *is* its templates), is shown in the grid
 layouts of the model's data tables instead (see [Table surface](#table-surface-grid-layouts)), and a
-report with neither document nor layouts, such as an XBRL-XML (not inline) filing, as
+report with neither document nor layouts, such as an xBRL-XML (not inline) filing, as
 report pages of its groups (see [Report pages surface](#report-pages-surface-r-file-style)).  The existing embedded-iXBRL path is
 completely unchanged; the XbrlModel path is taken when the runtime config
 contains an `xbrlModel` block **or** the viewer URL has an `?xbrlModel=<url>`
@@ -414,10 +414,10 @@ nothing to tag.
 
 ## Report pages surface (R-file style)
 
-A report filed as XBRL-XML rather than inline XBRL — SEC filings before inline XBRL was phased in
-from 2019, and still today Form SD (resource extraction payments: all 67 XBRL-XML filings in
+A report filed as xBRL-XML rather than inline XBRL — SEC filings before inline XBRL was phased in
+from 2019, and still today Form SD (resource extraction payments: all 67 xBRL-XML filings in
 EDGAR's September 2026 XBRL feed were SDs); some other jurisdictions (Spain) also still receive
-XBRL-XML — and facts loaded on their own have no document to show their facts on, and no grid
+xBRL-XML — and facts loaded on their own have no document to show their facts on, and no grid
 layouts.  `ReportDocumentSurface` shows it the way SEC's EDGAR renderer shows a
 filing: a menu of its groups by category (Cover, Financial Statements, Notes, Policies,
 Tables, Details — the `groupTree` the legacy loader writes from the role definitions)
