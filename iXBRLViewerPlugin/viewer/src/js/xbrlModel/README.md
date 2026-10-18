@@ -5,7 +5,9 @@ XbrlModel OIM model — a **compiled factset-with-taxonomy**, or a separate
 **factset** + **converted taxonomy** — plus a **plain document** (HTML or PDF),
 instead of the embedded inline-XBRL JSON.  A report with no document of its own,
 such as a prudential report (which *is* its templates), is shown in the grid
-layouts of the model's data tables instead (see [Table surface](#table-surface-grid-layouts)).  The existing embedded-iXBRL path is
+layouts of the model's data tables instead (see [Table surface](#table-surface-grid-layouts)), and a
+report with neither document nor layouts, such as an XBRL (not inline) filing, as
+report pages of its groups (see [Report pages surface](#report-pages-surface-r-file-style)).  The existing embedded-iXBRL path is
 completely unchanged; the XbrlModel path is taken when the runtime config
 contains an `xbrlModel` block **or** the viewer URL has an `?xbrlModel=<url>`
 argument.  The model can come from a served URL, a compiled single file, or a
@@ -83,6 +85,10 @@ seams were added:
      one from the model's `gridLayout` data tables (`gridLayout.js` places the
      facts), and `bind` wraps each placed fact's cell.  See
      [Table surface](#table-surface-grid-layouts).
+   - `ReportDocumentSurface` likewise generates its document: one page per group,
+     from the group's presentation network and cube (`reportPages.js`), and binds the
+     cells as `TableDocumentSurface` does.  See
+     [Report pages surface](#report-pages-surface-r-file-style).
 
 `XbrlModelViewer` (`xbrlModelViewer.js`) is a thin `Viewer` subclass that
 overrides the fact-discovery step (`Viewer._processDocuments`) to delegate to a
@@ -98,7 +104,8 @@ shared and unmodified.
 `model`/`factset` → chooser) and hands the parsed model to `_loadXbrlModelDoc`,
 which builds the report data and chooses the surface from the factset's
 `factLocatorType` (or the document extension / a `documentType` config value);
-a model with grid layouts that names no document gets the table surface.
+a model with grid layouts that names no document gets the table surface, and one
+with report groups but no document and no grid layouts gets the report pages.
 The GUI file picker lives in `xbrlModelChooser.js`.
 
 ### PDF.js packaging
@@ -217,7 +224,11 @@ A model that has `gridLayout` data tables and names **no document** (no
 `document` argument or config, no `derivedContent.reportSource`, no
 `sourceMappings` URL) opens on the [table surface](#table-surface-grid-layouts).
 `?surface=table` (or `"surface": "table"` in the `xbrlModel` config) asks for it
-even when the model does name a document.
+even when the model does name a document.  A model with neither a document nor grid
+layouts, but with groups and facts, opens on the
+[report pages](#report-pages-surface-r-file-style); `?surface=reports` asks for them.
+A source read by a template fact map, or by the built-in `xbrl:xBRL-XML`,
+`xbrl:xBRL-JSON` or `xbrl:xBRL-CSV` fact maps, is data, not a document.
 
 ### Quick test with the built-in HTTP server
 
@@ -400,6 +411,54 @@ the viewer chooses this surface.
 Not covered: `cubeLayout` data tables, and z selections as controls (each is a
 sheet); the generated document is not a rendering of anything filed, so there is
 nothing to tag.
+
+## Report pages surface (R-file style)
+
+A report filed as XBRL rather than inline XBRL — SEC filings before inline XBRL was phased in from 2019 — and
+facts loaded on their own — has no document to show its facts on, and no grid
+layouts.  `ReportDocumentSurface` shows it the way SEC's EDGAR renderer shows a
+filing: a menu of its groups by category (Cover, Financial Statements, Notes, Policies,
+Tables, Details — the `groupTree` the legacy loader writes from the role definitions)
+and a page per group, in the form of EDGAR's R files.  The EDGAR renderer and its
+R-file viewer are a source of ideas here, not of code: the pages are built from the
+Tavi model, and the inspector takes the place of their pop-ups.
+
+`reportPages.js`, DOM-free, builds the pages:
+
+- **Rows** are the group's parent-child network, in order: a concept is a line,
+  labelled by the relationship's `xbrl:preferredLabel` (terse, total, negated, period
+  start/end …) or its standard label; any other object (an abstract) is a heading.  An
+  axis and its members are not rows.  A line with no fact, or a heading with none
+  beneath, is left out.  A group with no network takes its rows from its cube's
+  concept domain.
+- **Facts** on a page are those of its lines that its cube admits (no dimension the cube
+  does not have).
+- **Columns** are their distinct periods and member combinations: no-member columns
+  first, durations before instants, longest and latest first, under "12 Months Ended" /
+  "Jun. 30, 2025" headings with a heading row of member labels when there are members.
+  An instant at a duration's end is shown in that duration's column (on a
+  periodStartLabel line, an instant at its start).
+- **Values**: amounts are scaled to the decimals most of a unit's facts have, and the
+  title says so ("USD ($) $ in Millions"); a negated label shows the negative, a
+  negative is in parentheses, a percent item is a percentage; the currency symbol is on
+  the first and last number of each run in the same unit down a column, as in EDGAR;
+  text blocks lose their markup.
+
+On Microsoft's FY2019 10-K (its last XBRL, not inline, annual report) the 125 pages hold
+2,451 cells and open in about 6 s; all 124 of EDGAR's R pages have a page of the same
+name, and 74% of their value cells show the same value on a row of the same label.
+The financial statements agree closely (comprehensive income 18/18, cash flows 96/102,
+balance sheet 62/66).  What is not covered, from EDGAR's renderer: dropping columns it
+judges incidental to a statement (a quarterly column on the annual income statement),
+member rows instead of member columns on detail pages, the transposed equity statement,
+per-element scaling, flow-through and parenthetical merging, and footnotes.
+
+The pages need the filer's labels and preferred labels: the legacy loader carries every
+label role `core.json` declares a `labelType` for, and `xbrl:preferredLabel` on parent-
+child relationships (Arelle/Arelle#2418).  A staged inline model keeps its values in
+the document (`valueSources`), so `?surface=reports` on it shows the pages without
+values; the use for this surface is a model with no document, whose values are in the
+model.
 
 ## Pointer locators (`xbrlx:htmlElementPointer`)
 

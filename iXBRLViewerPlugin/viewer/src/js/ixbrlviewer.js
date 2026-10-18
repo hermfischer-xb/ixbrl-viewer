@@ -11,6 +11,7 @@ import { XbrlModelViewer } from './xbrlModel/xbrlModelViewer.js';
 import { HtmlDocumentSurface } from './xbrlModel/htmlDocumentSurface.js';
 import { PdfDocumentSurface } from './xbrlModel/pdfDocumentSurface.js';
 import { TableDocumentSurface } from './xbrlModel/tableDocumentSurface.js';
+import { ReportDocumentSurface } from './xbrlModel/reportDocumentSurface.js';
 import { buildReportData } from './xbrlModel/adapter.js';
 import { showXbrlModelChooser } from './xbrlModel/xbrlModelChooser.js';
 import { FEATURE_GUIDE_LINK, FEATURE_REVIEW, FEATURE_SUPPORT_LINK, FEATURE_SURVEY_LINK, USER_GUIDE_URL, moveNonAppAttributes } from "./util";
@@ -583,14 +584,22 @@ export class iXBRLViewer {
         const hasGridLayouts = (layoutModel.layouts ?? []).some(l =>
             (l.dataTables ?? []).some(t => t.tableType === "gridLayout"));
         const wantsTables = hasGridLayouts && (params.get("surface") ?? cfg.surface) === "table";
+        // A report with no document and no grid layouts, such as an XBRL (not inline) filing,
+        // is shown as report pages of its groups (as the EDGAR renderer's R files show one):
+        // when the model has groups with contents, or when asked (?surface=reports).
+        const hasReportGroups = (layoutModel.groupContents ?? []).length > 0 && (layoutModel.facts ?? []).length > 0;
+        const wantsReports = hasReportGroups && (params.get("surface") ?? cfg.surface) === "reports";
 
         // Resolve the source document: content from the chooser, else the
         // sourceMapping/config URL matching the intended surface.
         // A source bound to a fact source whose fact map has a template (a tableTemplate reading
         // CSV, a JSON or XML template map) is data the model's facts were read from, not a
         // document to render.
-        const templateMaps = new Set((layoutModel.factMaps ?? []).filter(fm => fm.templateName).map(fm => fm.name));
-        const dataSources = new Set((layoutModel.factSources ?? []).filter(fs => templateMaps.has(fs.factMapName)).map(fs => fs.name));
+        // So is a source read by a built-in data fact map: an XBRL 2.1 instance, an xBRL-JSON or
+        // xBRL-CSV report.
+        const dataMaps = new Set((layoutModel.factMaps ?? []).filter(fm => fm.templateName).map(fm => fm.name));
+        ["xbrl:xBRL-XML", "xbrl:xBRL-JSON", "xbrl:xBRL-CSV"].forEach(name => dataMaps.add(name));
+        const dataSources = new Set((layoutModel.factSources ?? []).filter(fs => dataMaps.has(fs.factMapName)).map(fs => fs.name));
         const mappings = (di.sourceMappings ?? []).filter(sm => !dataSources.has(sm.sourceName));
         const wantsExt = hasPdfFacts ? /\.pdf(\?|#|$)/i : /\.html?(\?|#|$)/i;
         let docSource = documentSource;
@@ -600,6 +609,9 @@ export class iXBRLViewer {
         }
         else if (wantsTables) {
             docSource = { tables: true, model: layoutModel };
+        }
+        else if (wantsReports) {
+            docSource = { reports: true, model: layoutModel };
         }
         else {
             // A rendering located only as derived content -- somebody else's
@@ -622,6 +634,9 @@ export class iXBRLViewer {
             else if (hasGridLayouts) {
                 docSource = { tables: true, model: layoutModel };
             }
+            else if (hasReportGroups) {
+                docSource = { reports: true, model: layoutModel };
+            }
             else {
                 throw new Error("No source document specified in the model, config, or chooser");
             }
@@ -635,11 +650,14 @@ export class iXBRLViewer {
 
         // Select the document surface: explicit chooser type / config, else
         // whether the model has PDF-located facts, else the document extension.
-        const isPdf = !docSource.tables && (docSource.isPdf
+        const isPdf = !docSource.tables && !docSource.reports && (docSource.isPdf
             ?? (/pdf/i.test(cfg.documentType ?? "") || hasPdfFacts || /\.pdf(\?|#|$)/i.test(docSource.url ?? documentFile ?? "")));
         let surface;
         if (docSource.tables) {
             surface = new TableDocumentSurface();
+        }
+        else if (docSource.reports) {
+            surface = new ReportDocumentSurface();
         }
         else if (isPdf) {
             // PDF.js needs its standard_fonts/ and cmaps/ folders served to render
