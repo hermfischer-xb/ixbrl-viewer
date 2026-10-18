@@ -110,6 +110,26 @@ describe('buildGrid', () => {
         expect(rows.map(r => r.dataCells[1].facts)).toEqual([['a'], ['b']]);
     });
 
+    test("a key column with a network accepts only that network's members", () => {
+        const open = {
+            name: 'x:Open', tableType: 'gridLayout',
+            xAxis: { gridAxis: {
+                axisItems: [{ axisId: 'D01', dimensions: {} },
+                            { axisId: 'C010', dimensions: { 'xbrl:concept': 'x:amount' } }],
+                axisGroups: [{ dimensionName: 'x:Instrument', axisIds: ['D01'], axisNetwork: 'x:Listed' }] } },
+            yAxis: { gridAxis: {} },
+        };
+        const model = { domainNetworks: [{ name: 'x:Listed', root: 'x:InstrumentCls',
+                                           relationships: [{ source: 'x:InstrumentCls', target: 'x:listedShares' }] }] };
+        const facts = [
+            fact('listed', { 'xbrl:concept': 'x:amount', 'x:Instrument': 'x:listedShares' }, '5'),
+            fact('unlisted', { 'xbrl:concept': 'x:amount', 'x:Instrument': 'x:unlistedShares' }, '6'),
+        ];
+        const grid = buildGrid(model, open, facts);
+        expect(grid.sheets[0].rows.map(r => r.dataCells[1].facts)).toEqual([['listed']]);
+        expect(grid.placedFacts.has('unlisted')).toBe(false);
+    });
+
     test('a band spans its children; a header with nothing beneath extends down', () => {
         const banded = {
             name: 'x:B', tableType: 'gridLayout',

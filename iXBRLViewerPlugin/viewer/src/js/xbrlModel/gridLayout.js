@@ -13,10 +13,11 @@
  *  - A fact is in a cell when it has every one of the cell's dimensions with the same value
  *    and no other dimension than period, entity, unit and language.  A fact with a further
  *    dimension belongs to another table.
- *  - An axis group with no axisNetwork leaves its dimension to the facts: on the x axis it is
- *    a key column of an open table (whose rows are the facts' distinct key values), on the z
- *    axis a dimension the table is shown for one member at a time.  Here every combination
- *    the facts use is shown, one sheet each, so that every placed fact has a cell.
+ *  - On an open table (no y axis items) each x axis group is a key column: its rows are the
+ *    facts' distinct key values, and a group with an axisNetwork accepts only that network's
+ *    members (DNB's templates restrict a key column to a hierarchy).  A z axis group is a
+ *    dimension the table is shown for one member at a time; here every combination the facts
+ *    use is shown, one sheet each, so that every placed fact has a cell.
  *  - gridHeaders are read in document order: a header is followed by the headers beneath it
  *    (its children, at lower labelLevels), except one with rollUpLocation "end", which
  *    follows them.  A header has a position of its own (a row or column) unless its
@@ -231,11 +232,14 @@ export function buildGrid(model, dataTable, facts, options = {}) {
     const xItems = axisItems(dataTable.xAxis);
     const yItems = axisItems(dataTable.yAxis);
     const zItems = axisItems(dataTable.zAxis);
-    const keyGroups = axisGroups(dataTable.xAxis).filter(g => g.dimensionName && !g.axisNetwork);
+    const xGroups = axisGroups(dataTable.xAxis).filter(g => g.dimensionName);
+    const isOpen = yItems.length === 0 && xGroups.length > 0;
+    const keyGroups = isOpen ? xGroups : [];
     const keyAxisIds = new Set(keyGroups.flatMap(g => g.axisIds ?? []));
     const keyDimensions = keyGroups.map(g => g.dimensionName);
+    // a key column with a network accepts only its members
+    const keyAllowed = keyGroups.map(g => g.axisNetwork ? domainMembers(g.axisNetwork) : null);
     const zGroupDimensions = axisGroups(dataTable.zAxis).map(g => g.dimensionName).filter(d => d);
-    const isOpen = yItems.length === 0 && keyGroups.length > 0;
     const freeDimensions = new Set([...keyDimensions, ...zGroupDimensions]);
 
     const cube = (model.cubes ?? []).find(c => c.name === dataTable.cubeName);
@@ -316,6 +320,9 @@ export function buildGrid(model, dataTable, facts, options = {}) {
         });
         for (const fact of candidates) {
             const factDimensions = fact.factDimensions ?? {};
+            if (keyDimensions.some((d, i) => keyAllowed[i] && factDimensions[d] !== undefined && !keyAllowed[i].has(factDimensions[d]))) {
+                continue;
+            }
             const own = Object.fromEntries(Object.entries(factDimensions)
                 .filter(([d]) => !FREE_DIMENSIONS.has(d) && !freeDimensions.has(d)));
             for (const cell of cellsByKey.get(canonicalKey(own)) ?? []) {
@@ -450,7 +457,7 @@ export function buildGrid(model, dataTable, facts, options = {}) {
 
         const zLabels = [];
         for (const [d, v] of Object.entries(zDimensions)) {
-            zLabels.push(`${label(d) ?? d}: ${memberText(v, label)}`);
+            zLabels.push(`${label(d) ?? (d === 'xbrl:concept' ? 'Concept' : d)}: ${memberText(v, label)}`);
         }
         return { label: zLabels.join('; '), dimensions: zDimensions, rows };
     });

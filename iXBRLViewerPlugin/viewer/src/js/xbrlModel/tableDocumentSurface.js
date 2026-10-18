@@ -188,7 +188,8 @@ function escapeHtml(text) {
 
 const STYLE = `
 body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 13px; margin: 16px; color: #1f2328; }
-.tl-contents ol { columns: 2; margin: 0 0 24px; padding-left: 20px; }
+.tl-contents ol { columns: 2; column-gap: 40px; margin: 0 0 24px; padding-left: 0; list-style-position: inside; }
+.tl-contents li { break-inside: avoid; margin-bottom: 2px; }
 .tl-contents .tl-count { color: #6e7781; font-size: 11px; }
 .tl-table { margin-bottom: 32px; }
 .tl-table h2 { font-size: 15px; margin: 24px 0 8px; }

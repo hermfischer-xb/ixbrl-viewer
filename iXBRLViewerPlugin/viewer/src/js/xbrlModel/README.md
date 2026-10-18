@@ -369,11 +369,12 @@ viewer draws the same tables).  The rules, as that viewer reads the layout objec
 - A fact is in a cell when it has every one of the cell's dimensions with the same
   value and **no other** dimension than period, entity, unit and language.  A fact
   with a further dimension belongs to another table that shares the concept.
-- An `axisGroup` with no `axisNetwork` leaves its dimension to the facts.  On the
-  x axis it is a key column of an **open table**, whose rows are the facts' distinct
-  key values (in fact order).  On the z axis it is a selectable dimension; every
-  combination of z axis item and z group values that the facts use is drawn as its
-  own sheet, so every placed fact has a cell.
+- On an **open table** (no y axis items) each x `axisGroup` is a key column, whose rows
+  are the facts' distinct key values (in fact order); a key column with an `axisNetwork`
+  accepts only that network's members (DNB's templates restrict each key column to a
+  hierarchy).  A z `axisGroup` is a selectable dimension; every combination of z axis
+  item and z group values that the facts use is drawn as its own sheet, so every placed
+  fact has a cell.
 - `gridHeaders` are read in document order: a header is followed by the headers
   beneath it (lower `labelLevel`), except one with `rollUpLocation: "end"`, which
   follows them.  A header has a row or column of its own unless its
@@ -388,7 +389,9 @@ templates it reports), with a contents list at the top.  Facts are matched to ce
 by the model's fact name (`factData.n`): an unlocated fact is keyed `hf-N` by the
 adapter, and a fact in no cell stays a hidden fact.  On EIOPA's 2.10.0 workbook
 with its annual sample facts — 383 tables, 733 sheets, 21,703 cells — the viewer
-is ready in about 2.7 s (Mac M4).
+is ready in about 2.7 s (Mac M4).  DNB's MES 5.0.0 sample reports, read from their
+xBRL-CSV files by the model's fact sources, open the same way (DTC: 34 templates, 416
+facts, under a second).
 
 On the Arelle side (Arelle/Arelle#2418), `--saveXbrlModelViewer` and the GUI's
 viewer launch stage a model that has grid layouts and no document on its own, and
