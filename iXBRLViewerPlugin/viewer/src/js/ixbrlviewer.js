@@ -584,7 +584,7 @@ export class iXBRLViewer {
         const hasGridLayouts = (layoutModel.layouts ?? []).some(l =>
             (l.dataTables ?? []).some(t => t.tableType === "gridLayout"));
         const wantsTables = hasGridLayouts && (params.get("surface") ?? cfg.surface) === "table";
-        // A report with no document and no grid layouts, such as an XBRL (not inline) filing,
+        // A report with no document and no grid layouts, such as an XBRL-XML (not inline) filing,
         // is shown as report pages of its groups (as the EDGAR renderer's R files show one):
         // when the model has groups with contents, or when asked (?surface=reports).
         const hasReportGroups = (layoutModel.groupContents ?? []).length > 0 && (layoutModel.facts ?? []).length > 0;
