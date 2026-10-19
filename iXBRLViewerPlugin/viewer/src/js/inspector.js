@@ -1276,11 +1276,11 @@ export class Inspector {
             $('.cubes-inspector .no-cubes-overlay').toggle(shown === 0);
         }
         else {
-            // Flat fallback: report has no group tree -- list cubes by descending fact count.
+            // Flat fallback: report has no group tree -- list cubes in the model's order (a
+            // generated model's is its templates' order, as the workbook lists them).
             const cubes = this._reportSet.cubes()
                 .map(cube => ({ cube, facts: cubeFacts(cube.name) }))
-                .filter(c => c.facts.length > 0)
-                .sort((a, b) => b.facts.length - a.facts.length);
+                .filter(c => c.facts.length > 0);
             $('.cubes-inspector .no-cubes-overlay').toggle(cubes.length === 0);
             const container = $('<div class="fact-list"></div>').appendTo(body);
             for (const { cube, facts } of cubes) {
