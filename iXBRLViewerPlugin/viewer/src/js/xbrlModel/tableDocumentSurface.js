@@ -167,14 +167,13 @@ function dataCellHtml(cell, factsByName, label) {
  * label, anything else as it is.  The inspector shows the fact's own value.
  */
 export function displayValue(fact, label) {
-    const fv = fact?.factValues?.[0];
-    const value = fv?.value;
+    const value = fact?.value;
     if (value === undefined || value === null) {
         return fact?.properties?.some(p => p.property === 'xbrl:nil') ? 'nil' : '';
     }
     const number = Number(value);
-    if (fact.factDimensions?.['xbrl:unit'] !== undefined && value !== '' && !Number.isNaN(number)) {
-        const decimals = fv.decimals;
+    if (fact.dimensions?.['xbrl:unit'] !== undefined && value !== '' && !Number.isNaN(number)) {
+        const decimals = fact.decimals;
         return number.toLocaleString('en-US', decimals !== undefined && decimals >= 0
             ? { minimumFractionDigits: decimals, maximumFractionDigits: decimals }
             : { maximumFractionDigits: 0 });

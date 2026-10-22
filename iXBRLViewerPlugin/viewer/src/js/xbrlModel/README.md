@@ -52,7 +52,7 @@ seams were added:
      locators is resolved to its text run first, on the pristine tree, and each
      run is wrapped in a span of its own.
    - `PdfDocumentSurface` handles the PDF locator types defined by the spec
-     (`factValue.source` → `factSource` → `factMap` → `factLocatorType`):
+     (`fact.reportSource` → `factSource` → `factMap` → `factLocatorType`):
      - **content** (`xbrl:pdfContentLocatorType`: `xbrl:pdfPage` + `xbrl:pdfMcid`)
        — builds a marked-content-id → rectangle map per page from
        `getTextContent({ includeMarkedContent: true })` and lays one
@@ -547,25 +547,24 @@ built from the presentation/parent-child networks, already covers that.)
 
 ## Facts occurring more than once
 
-A model fact can occur in several places in the document, and each occurrence is
-a `factValue` carrying the scaling and accuracy of the text where it is
-displayed.  Microsoft's total revenue is on pages 49, 84 (twice) and 85;
+A data point can occur in several places in the document, and each occurrence is
+a fact of its own -- the fact value object was collapsed into the fact -- carrying
+the scaling and accuracy of the text where it is displayed.  Microsoft's total revenue is on pages 49, 84 (twice) and 85;
 `us-gaap:CommercialPaper` is printed in millions in one place and billions in
-another.  They are **consistent duplicates** in the specification's sense — one
-fact, agreeing on value, presented differently — which is the structure the
-viewer's existing duplicate handling already expects.
+another.  They are **consistent duplicates** in the specification's sense —
+agreeing on value, presented differently — which is the structure the viewer's
+existing duplicate handling already expects.
 
-`buildFacts` therefore emits **one viewer fact per located occurrence**, as the
-iXBRL path has always done for a repeated tag.  It previously merged a PDF
-fact's occurrences into one, taking the last one's scale: that is not merely
-imprecise, because barely any `factValue` carries an explicit value (27 of 1,829
-in the Microsoft PDF factset) and the surface computes it from the located text
-and that occurrence's scale.  One merged scale applied to text printed in
-different units gives a **wrong value**, not just a wrong accuracy label — 5
-facts in that filing.  Splitting also gives each viewer fact exactly one
-`factValue` name, which is what lets a tagging journal say which occurrence a
-binding belongs to, and what makes `derivedContent.factValues` — keyed by
-`factValueName` — resolvable to a single value per fact.
+`buildFacts` therefore emits **one viewer fact per model fact**, as the iXBRL path
+has always done for a repeated tag.  Merging occurrences into one, taking the last
+one's scale, is not merely imprecise: barely any occurrence carries an explicit
+value (27 of 1,829 in the Microsoft PDF factset) and the surface computes it from
+the located text and that occurrence's scale.  One merged scale applied to text
+printed in different units gives a **wrong value**, not just a wrong accuracy
+label — 5 facts in that filing.  It also gives each viewer fact exactly one model
+fact name, which is what lets a tagging journal say which occurrence a binding
+belongs to, and what makes `derivedContent.factValues` — keyed by `factName` —
+resolvable to a single value per viewer fact.
 
 ## Derived content
 
@@ -602,8 +601,8 @@ displace, and the local computation has always been its only source.  Provenance
 verdict, including *Not validated*, where it says which run skipped the binding.
 
 **Resolved fact values.** `derivedContent.factValues` carries what processing
-resolved each occurrence to, keyed by `factValueName` — one-to-one against the
-viewer's facts, since one viewer fact is one occurrence.  A `bound` value
+resolved each fact to, keyed by `factName` — one-to-one against the viewer's
+facts, since one viewer fact is one model fact.  A `bound` value
 supersedes a `resolved` one for the same occurrence: it came from an applied
 tagging journal or an alignment, the model's own sources having failed to locate
 it on that surface. A `bound` entry can also carry `valueSources`, pointer

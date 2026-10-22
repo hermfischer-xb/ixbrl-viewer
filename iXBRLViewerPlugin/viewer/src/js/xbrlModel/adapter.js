@@ -351,26 +351,24 @@ function collectDimensionConcepts(taxonomy) {
     return { explicit, typed };
 }
 
-// Locators live in the properties of valueSources (Form A: the document text is the
-// source of truth and the value is derived from it) or of valueAnchors (Form B: the
-// value is provided in the factset and the anchor only locates it in the document).
-// Both carry the same locator properties, so read both to make either form locatable.
-function factLocators(fv) {
-    return [...(fv.valueSources ?? []), ...(fv.valueAnchors ?? [])];
+// Locators live in the properties of a fact's valueSources.  Without a value (Form A)
+// the document text is the source of truth and the value is derived from it; with a
+// value (Form B), or on a nil fact, the value sources only locate the fact in the
+// document.  Both forms carry the same locator properties.
+function factLocators(fact) {
+    return fact.valueSources ?? [];
 }
 
 function htmlElementIdsForFact(fact) {
     const ids = [];
-    for (const fv of fact.factValues ?? []) {
-        for (const locator of factLocators(fv)) {
-            for (const p of locator.properties ?? []) {
-                // xbrl:htmlElementId is the current spec property name;
-                // xbrl:htmlSpanId is accepted as a legacy alias for factsets not
-                // yet regenerated to the renamed property.
-                if (p.property === "xbrl:htmlElementId" || p.property === "xbrl:htmlSpanId") {
-                    for (const id of p.value ?? []) {
-                        ids.push(id);
-                    }
+    for (const locator of factLocators(fact)) {
+        for (const p of locator.properties ?? []) {
+            // xbrl:htmlElementId is the current spec property name;
+            // xbrl:htmlSpanId is accepted as a legacy alias for factsets not
+            // yet regenerated to the renamed property.
+            if (p.property === "xbrl:htmlElementId" || p.property === "xbrl:htmlSpanId") {
+                for (const id of p.value ?? []) {
+                    ids.push(id);
                 }
             }
         }
@@ -379,30 +377,28 @@ function htmlElementIdsForFact(fact) {
 }
 
 // PDF locators for a fact: an array of { page, mcids } - one entry per value
-// source or anchor that carries xbrl:pdfPage + xbrl:pdfMcid.  A single fact may be
+// source that carries xbrl:pdfPage + xbrl:pdfMcid.  A single fact may be
 // split across several marked-content ids (and pages), so all are kept and become
 // the wrapper nodes of one IXNode.
 function pdfLocatorsForFact(fact) {
     const locators = [];
-    for (const fv of fact.factValues ?? []) {
-        for (const vs of factLocators(fv)) {
-            let page = null;
-            const mcids = [];
-            for (const p of vs.properties ?? []) {
-                if (p.property === "xbrl:pdfPage") {
-                    page = p.value;
-                }
-                else if (p.property === "xbrl:pdfMcid") {
-                    for (const m of (Array.isArray(p.value) ? p.value : [p.value])) {
-                        if (m != null) {
-                            mcids.push(m);
-                        }
+    for (const vs of factLocators(fact)) {
+        let page = null;
+        const mcids = [];
+        for (const p of vs.properties ?? []) {
+            if (p.property === "xbrl:pdfPage") {
+                page = p.value;
+            }
+            else if (p.property === "xbrl:pdfMcid") {
+                for (const m of (Array.isArray(p.value) ? p.value : [p.value])) {
+                    if (m != null) {
+                        mcids.push(m);
                     }
                 }
             }
-            if (page != null && mcids.length > 0) {
-                locators.push({ page, mcids });
-            }
+        }
+        if (page != null && mcids.length > 0) {
+            locators.push({ page, mcids });
         }
     }
     return locators;
@@ -415,27 +411,25 @@ function pdfLocatorsForFact(fact) {
 // facts share the same page+bbox; `key` groups them into one highlight region.
 function pdfImageLocatorsForFact(fact) {
     const locators = [];
-    for (const fv of fact.factValues ?? []) {
-        for (const vs of factLocators(fv)) {
-            let page = null;
-            let bboxStr = null;
-            for (const p of vs.properties ?? []) {
-                if (p.property === "xbrl:pdfPage") {
-                    page = p.value;
-                }
-                else if (p.property === "xbrl:pdfBBox") {
-                    bboxStr = p.value;
-                }
+    for (const vs of factLocators(fact)) {
+        let page = null;
+        let bboxStr = null;
+        for (const p of vs.properties ?? []) {
+            if (p.property === "xbrl:pdfPage") {
+                page = p.value;
             }
-            if (page != null && bboxStr) {
-                const n = String(bboxStr).trim().split(/\s+/).map(Number);
-                if (n.length === 4 && n.every(v => !Number.isNaN(v))) {
-                    locators.push({
-                        page,
-                        bbox: { x0: n[0], y0: n[1], x1: n[2], y1: n[3] },
-                        key: page + "|" + n.join(" "),
-                    });
-                }
+            else if (p.property === "xbrl:pdfBBox") {
+                bboxStr = p.value;
+            }
+        }
+        if (page != null && bboxStr) {
+            const n = String(bboxStr).trim().split(/\s+/).map(Number);
+            if (n.length === 4 && n.every(v => !Number.isNaN(v))) {
+                locators.push({
+                    page,
+                    bbox: { x0: n[0], y0: n[1], x1: n[2], y1: n[3] },
+                    key: page + "|" + n.join(" "),
+                });
             }
         }
     }
@@ -447,14 +441,12 @@ function pdfImageLocatorsForFact(fact) {
 // field (its page, rectangle and value) via PDF.js getFieldObjects().
 function pdfFormFieldsForFact(fact) {
     const names = [];
-    for (const fv of fact.factValues ?? []) {
-        for (const vs of factLocators(fv)) {
-            for (const p of vs.properties ?? []) {
-                if (p.property === "xbrl:pdfFormField") {
-                    for (const name of (Array.isArray(p.value) ? p.value : [p.value])) {
-                        if (name != null) {
-                            names.push(name);
-                        }
+    for (const vs of factLocators(fact)) {
+        for (const p of vs.properties ?? []) {
+            if (p.property === "xbrl:pdfFormField") {
+                for (const name of (Array.isArray(p.value) ? p.value : [p.value])) {
+                    if (name != null) {
+                        names.push(name);
                     }
                 }
             }
@@ -476,8 +468,8 @@ function isPointerSource(vs) {
     return (vs?.properties ?? []).some(p => p.property === HTML_ELEMENT_POINTER);
 }
 
-function pointerSourcesForFactValue(fv) {
-    return factLocators(fv ?? {}).filter(isPointerSource);
+function pointerSourcesForFact(fact) {
+    return factLocators(fact ?? {}).filter(isPointerSource);
 }
 
 function baseName(url) {
@@ -497,45 +489,45 @@ function sourceMatchesDocument(sourceUrl, documentFile) {
 
 /*
  * Pointer locators recorded as derived content: `bound` derived fact values whose
- * derivedContent.reportSource is the document being viewed, keyed by factValueName.
+ * derivedContent.reportSource is the document being viewed, keyed by factName.
  *
  * This is the form an alignment takes when whoever ran it is not the filer
  * (README, "--alignInto"): the model stays exactly as filed, and where its facts
  * appear on somebody else's rendering is recorded beside it.  The viewer shows
  * them on that rendering just as it shows the model's own locators on the filed one.
  */
-function boundPointerSourcesByFactValue(doc, documentFile) {
+function boundPointerSourcesByFact(doc, documentFile) {
     const derived = doc?.derivedContent;
     const byName = {};
     if (!derived || !sourceMatchesDocument(derived.reportSource?.url, documentFile)) {
         return byName;
     }
     for (const dv of derived.factValues ?? []) {
-        if (dv?.basis !== "bound" || dv.factValueName === undefined) {
+        if (dv?.basis !== "bound" || dv.factName === undefined) {
             continue;
         }
         const sources = (dv.valueSources ?? []).filter(isPointerSource);
         if (sources.length > 0) {
-            byName[dv.factValueName] = sources;
+            byName[dv.factName] = sources;
         }
     }
     return byName;
 }
 
 /*
- * derivedContent.factValues, keyed by factValueName -- the resolved value of one
- * occurrence.  `bound` supersedes `resolved` for the same occurrence: a bound
+ * derivedContent.factValues, keyed by factName -- the resolved value of one
+ * fact, which is one occurrence.  `bound` supersedes `resolved` for the same fact: a bound
  * value came from a tagging journal, applied because the model's own sources did
  * not locate it on that surface.
  */
-function resolvedValuesByFactValue(doc) {
+function resolvedValuesByFact(doc) {
     const byName = {};
     for (const rv of doc?.derivedContent?.factValues ?? []) {
-        if (rv?.factValueName === undefined) {
+        if (rv?.factName === undefined) {
             continue;
         }
-        if (byName[rv.factValueName] === undefined || rv.basis === "bound") {
-            byName[rv.factValueName] = rv.value;
+        if (byName[rv.factName] === undefined || rv.basis === "bound") {
+            byName[rv.factName] = rv.value;
         }
     }
     return byName;
@@ -547,7 +539,7 @@ function buildFacts(factset, resolvedValues = {}, pointerContext = {}) {
     let pdfKeyCounter = 0;
     let pointerKeyCounter = 0;
     for (const fact of factset.facts ?? []) {
-        const dims = fact.factDimensions ?? {};
+        const dims = fact.dimensions ?? {};
         const concept = dims["xbrl:concept"];
         if (!concept) {
             continue;
@@ -581,31 +573,27 @@ function buildFacts(factset, resolvedValues = {}, pointerContext = {}) {
         }
 
         /*
-         * A model fact can occur in several places in the document, and each
-         * occurrence is a factValue carrying the scaling and accuracy of the
-         * text where it is displayed -- Microsoft's total revenue is on pages
-         * 49, 84 (twice) and 85, and us-gaap:CommercialPaper is printed in
-         * millions in one place and billions in another.  They are consistent
-         * duplicates in the specification's sense: one fact, agreeing on value,
-         * presented differently.
-         *
-         * So the presentation is read per occurrence rather than merged.  Merging
-         * was not merely imprecise: barely any factValue carries an explicit
-         * value (27 of 1,829 in the Microsoft PDF factset), the surface computing
-         * it instead from the located text and that occurrence's scale, so one
-         * merged scale applied to text printed in different units gives a wrong
-         * value, not just a wrong accuracy.
+         * A data point can occur in several places in the document -- Microsoft's
+         * total revenue is on pages 49, 84 (twice) and 85, and
+         * us-gaap:CommercialPaper is printed in millions in one place and billions
+         * in another.  Each occurrence is a fact of its own (the fact value object
+         * was collapsed into the fact), carrying the scaling and accuracy of the
+         * text where it is displayed; they are consistent duplicates in the
+         * specification's sense.  So presentation is read per fact.  Barely any
+         * occurrence carries an explicit value (27 of 1,829 in the Microsoft PDF
+         * factset), the surface computing it instead from the located text and
+         * that occurrence's scale.
          */
-        const presentationOf = (fv) => ({
-            value: fv?.value ?? null,
-            decimals: fv?.decimals,
-            scale: fv?.scale,
-            sign: fv?.sign,
-            transformation: fv?.transformation,
-        });
+        const presentation = {
+            value: fact.value ?? null,
+            decimals: fact.decimals,
+            scale: fact.scale,
+            sign: fact.sign,
+            transformation: fact.transformation,
+        };
 
-        const makeFactData = (fv) => {
-            const { value: jsonValue, decimals, scale, sign, transformation } = presentationOf(fv);
+        const makeFactData = () => {
+            const { value: jsonValue, decimals, scale, sign, transformation } = presentation;
             const factData = { a: { ...a }, v: jsonValue };
             /*
              * The model's own name for this fact.  Facts are keyed here by
@@ -619,16 +607,6 @@ function buildFacts(factset, resolvedValues = {}, pointerContext = {}) {
                 factData.n = fact.name;
             }
             /*
-             * The occurrence this viewer fact stands for, named as the model
-             * names it.  One name, because one viewer fact is now one occurrence
-             * -- which is also what makes derivedContent.factValues, keyed by
-             * factValueName, resolvable to a single value here.  A fact with no
-             * factValue at all (an unlocated one) has none to give.
-             */
-            if (fv?.name !== undefined) {
-                factData.fvn = fv.name;
-            }
-            /*
              * The occurrence's existing sources, kept in the model's own shape.
              *
              * This is what a rebind displaces, and a journal entry records it so
@@ -638,8 +616,8 @@ function buildFacts(factset, resolvedValues = {}, pointerContext = {}) {
              * one (223 KB of 1.1 MB were it copied, on the Microsoft PDF
              * factset).
              */
-            if (Array.isArray(fv?.valueSources) && fv.valueSources.length > 0) {
-                factData.vs = fv.valueSources;
+            if (Array.isArray(fact.valueSources) && fact.valueSources.length > 0) {
+                factData.vs = fact.valueSources;
             }
             if (decimals !== undefined) {
                 factData.d = decimals;
@@ -659,7 +637,7 @@ function buildFacts(factset, resolvedValues = {}, pointerContext = {}) {
                  * the resolved value everywhere would show the right value at the
                  * wrong place, which is the harder defect to notice.
                  */
-                const resolved = resolvedValues[fv?.name];
+                const resolved = resolvedValues[fact.name];
                 if (resolved !== undefined) {
                     factData.num.derivedValue = resolved;
                 }
@@ -668,69 +646,59 @@ function buildFacts(factset, resolvedValues = {}, pointerContext = {}) {
         };
 
         /*
-         * One viewer fact per located occurrence.  The locator helpers read a
-         * whole fact, so each occurrence is passed as a fact of its own; that
-         * keeps them single-purpose rather than teaching all four to take either.
+         * One viewer fact per located fact.  A fact located in several places of
+         * the html (repeated element ids) becomes several viewer facts, as for
+         * repeated iXBRL tags.
          */
-        let located = false;
-        for (const fv of fact.factValues ?? []) {
-            const occurrence = { ...fact, factValues: [fv] };
-
-            // PDF surface first: an occurrence located in the PDF carries content
-            // (MCID) and/or image (bbox) locators; keyed by a synthesised id, with
-            // its locators attached for the surface to place overlay boxes.
-            const pdfContent = pdfLocatorsForFact(occurrence);
-            const pdfImage = pdfImageLocatorsForFact(occurrence);
-            const pdfFormField = pdfFormFieldsForFact(occurrence);
-            if (pdfContent.length > 0 || pdfImage.length > 0 || pdfFormField.length > 0) {
-                const factData = makeFactData(fv);
-                if (pdfContent.length > 0) {
-                    factData.pdf = pdfContent;
-                }
-                if (pdfImage.length > 0) {
-                    factData.pdfImage = pdfImage;
-                }
-                if (pdfFormField.length > 0) {
-                    factData.pdfFormField = pdfFormField;
-                }
-                facts["pf-" + (pdfKeyCounter++)] = factData;
-                located = true;
-                continue;
+        // PDF surface first: a fact located in the PDF carries content
+        // (MCID) and/or image (bbox) locators; keyed by a synthesised id, with
+        // its locators attached for the surface to place overlay boxes.
+        const pdfContent = pdfLocatorsForFact(fact);
+        const pdfImage = pdfImageLocatorsForFact(fact);
+        const pdfFormField = pdfFormFieldsForFact(fact);
+        if (pdfContent.length > 0 || pdfImage.length > 0 || pdfFormField.length > 0) {
+            const factData = makeFactData();
+            if (pdfContent.length > 0) {
+                factData.pdf = pdfContent;
             }
-
-            // Positional HTML locators, the model's own (when made for this
-            // document) or bound as derived content.  Keyed by a synthesised id,
-            // like the PDF facts, since the target has no element id to key by;
-            // the surface resolves them before it decorates the document.
-            const ownPointers = sourceMatchesDocument(sourceUrls[fv?.reportSource], documentFile)
-                ? pointerSourcesForFactValue(fv) : [];
-            const pointerSources = ownPointers.length > 0 ? ownPointers : (boundPointers[fv?.name] ?? []);
-            if (pointerSources.length > 0) {
-                const factData = makeFactData(fv);
-                factData.html = pointerSources;
-                facts["xf-" + (pointerKeyCounter++)] = factData;
-                located = true;
-                continue;
+            if (pdfImage.length > 0) {
+                factData.pdfImage = pdfImage;
             }
-
-            // HTML fallback: an occurrence not located in the PDF keeps its
-            // retained html source.  One viewer fact per html element id
-            // (repeated ids become duplicates, as for repeated iXBRL tags).
-            for (const elementId of htmlElementIdsForFact(occurrence)) {
-                facts[elementId] = makeFactData(fv);
-                located = true;
+            if (pdfFormField.length > 0) {
+                factData.pdfFormField = pdfFormField;
             }
+            facts["pf-" + (pdfKeyCounter++)] = factData;
+            continue;
         }
-        if (located) {
+
+        // Positional HTML locators, the model's own (when made for this
+        // document) or bound as derived content.  Keyed by a synthesised id,
+        // like the PDF facts, since the target has no element id to key by;
+        // the surface resolves them before it decorates the document.
+        const ownPointers = sourceMatchesDocument(sourceUrls[fact.reportSource], documentFile)
+            ? pointerSourcesForFact(fact) : [];
+        const pointerSources = ownPointers.length > 0 ? ownPointers : (boundPointers[fact.name] ?? []);
+        if (pointerSources.length > 0) {
+            const factData = makeFactData();
+            factData.html = pointerSources;
+            facts["xf-" + (pointerKeyCounter++)] = factData;
+            continue;
+        }
+
+        // HTML fallback: a fact not located in the PDF keeps its retained html
+        // source.  One viewer fact per html element id.
+        const elementIds = htmlElementIdsForFact(fact);
+        for (const elementId of elementIds) {
+            facts[elementId] = makeFactData();
+        }
+        if (elementIds.length > 0) {
             continue;
         }
 
         // No document locator at all -- an ix:hidden fact (e.g. dei:EntityCentralIndexKey)
         // never linked to display text. Keep it so the surface can register it as a
-        // hidden fact (browsable in the fact list) rather than dropping it.  Its
-        // presentation comes from its first factValue, there being no located
-        // occurrence to prefer.
-        facts["hf-" + (pdfKeyCounter++)] = makeFactData((fact.factValues ?? [])[0]);
+        // hidden fact (browsable in the fact list) rather than dropping it.
+        facts["hf-" + (pdfKeyCounter++)] = makeFactData();
     }
     return facts;
 }
@@ -876,12 +844,12 @@ export function buildReportData(factsetDoc, taxonomyDoc, options = {}) {
         }
     }
     const facts = buildFacts(factset, {
-        ...resolvedValuesByFactValue(taxonomyDoc),
-        ...resolvedValuesByFactValue(factsetDoc),
+        ...resolvedValuesByFact(taxonomyDoc),
+        ...resolvedValuesByFact(factsetDoc),
     }, {
         boundPointers: {
-            ...boundPointerSourcesByFactValue(taxonomyDoc, documentFile),
-            ...boundPointerSourcesByFactValue(factsetDoc, documentFile),
+            ...boundPointerSourcesByFact(taxonomyDoc, documentFile),
+            ...boundPointerSourcesByFact(factsetDoc, documentFile),
         },
         sourceUrls,
         documentFile,

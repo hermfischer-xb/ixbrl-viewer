@@ -315,7 +315,7 @@ export function buildGrid(model, dataTable, facts, options = {}) {
             });
         });
         for (const fact of candidates) {
-            const factDimensions = fact.factDimensions ?? {};
+            const factDimensions = fact.dimensions ?? {};
             const own = Object.fromEntries(Object.entries(factDimensions)
                 .filter(([d]) => !FREE_DIMENSIONS.has(d) && !freeDimensions.has(d)));
             for (const cell of cellsByKey.get(canonicalKey(own)) ?? []) {
@@ -480,7 +480,7 @@ export function gridLayoutTables(model, options = {}) {
     const factsByConcept = new Map();
     const factIndex = new Map(facts.map((fact, i) => [fact, i]));
     for (const fact of facts) {
-        const concept = fact.factDimensions?.['xbrl:concept'];
+        const concept = fact.dimensions?.['xbrl:concept'];
         if (!factsByConcept.has(concept)) {
             factsByConcept.set(concept, []);
         }

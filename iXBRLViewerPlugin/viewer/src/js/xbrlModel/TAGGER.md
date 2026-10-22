@@ -21,7 +21,7 @@ journal and the editing work listed below.
 | ✅ | `tagging/elementPointer.js` — XPointer element() for HTML | 17 tests + all 90,908 elements of the L'Oreal filing round-trip |
 | ✅ | `tagging/bindSession.js` — the bind lifecycle, surface-agnostic | 33 tests |
 | ✅ | `tagging/formRenderer.js` — forms from a creator-shaped descriptor | 13 tests + all 33 creator object types render |
-| ✅ | `tagging/descriptors.js` — the factValue derivation stand-in, and the per-capture subset | 11 tests |
+| ✅ | `tagging/descriptors.js` — the fact value derivation stand-in, and the per-capture subset | 11 tests |
 | ✅ | `beginBind` / `endBind` / `widen` on both surfaces | driven in a browser on the loreal PDF and XHTML |
 | ✅ | the bind card, the trigger, and mode signalling | as above |
 | ✅ | multi-fragment capture, with per-fragment undo | 11 tests |
@@ -97,7 +97,7 @@ evidence would be worse.
 | HTML/XHTML documents (`htmlElementId`, `htmlElementPointer`) | — |
 | Facts already in the model that have **no** location | Creating facts that are not in the model |
 | Re-locating a fact that is located **wrongly** | Creating concepts, dimensions, members |
-| **Value-derivation** properties: `transformation`, `scale`, `sign`, `escape`, `decimals` | **Fact-identity** properties: `factDimensions`, `factQualifier`, period, entity |
+| **Value-derivation** properties: `transformation`, `scale`, `sign`, `escape`, `decimals` | **Fact-identity** properties: `dimensions`, `qualifier`, period, entity |
 | Emitting an edit **journal** the user downloads | Writing back to the model / server |
 | Several fragments joined into one value | — |
 
@@ -239,15 +239,14 @@ model change.
 
 ```json
 {
-  "journalVersion": 1,
+  "journalVersion": 2,
   "document": "lor.pdf",
   "model": "loreal-complete.json",
   "entries": [
     {
       "op": "bindValueSource",
       "factId": "f-00317",
-      "factName": "msft:fs_F_bc502677-3104-4ca9-95e8-829c07f0ef75",
-      "factValueName": "msft:F_bc502677-3104-4ca9-95e8-829c07f0ef75_val",
+      "factName": "msft:F_bc502677-3104-4ca9-95e8-829c07f0ef75",
       "previous": null,
       "locatorType": "xbrl:pdfContentLocatorType",
       "sources": [
@@ -272,7 +271,7 @@ model change.
 Notes on the shape:
 
 - `sources` is an **ordered list** of `factValueSourceObject`s, matching
-  `factValue.valueSources`, whose fragments contribute *by concatenation*. A
+  `fact.valueSources`, whose fragments contribute *by concatenation*. A
   number set with the thousands separator as a gap can occupy two
   marked-content runs, so one value legitimately has several sources; a single
   bag is accepted as the one-fragment shorthand and wrapped. Each element is
@@ -285,17 +284,18 @@ Notes on the shape:
   fact starts unlocated, so an entry names the fact as the *model* names it.
   `factId` stays, because within a session it is what the viewer's own undo and
   rebind lookups use.
-- `factValueName` is the **occurrence** being bound. A `factValue` is one
-  occurrence of the fact in the document rather than one value of it: Microsoft's
-  total revenue has four, on pages 49, 84 (twice) and 85. They agree on the
-  value — as they must, being one fact — while differing in how it is presented,
-  and `us-gaap:CommercialPaper` is printed in millions in one place and billions
-  in another. These are *consistent duplicates* in the specification's sense.
+- `factName` names the **occurrence** being bound. Since the fact value object
+  was collapsed into the fact, a fact is one occurrence of a data point in the
+  document: Microsoft's total revenue is four facts, on pages 49, 84 (twice) and
+  85. They agree on the value while differing in how it is presented, and
+  `us-gaap:CommercialPaper` is printed in millions in one place and billions in
+  another. These are *consistent duplicates* in the specification's sense.
 
-  The adapter builds one viewer fact per occurrence, so there is exactly one
-  factValue to name and no choice left for the applier to make. Both names are
-  `null` for a report with no model behind it (the plain iXBRL path), which tells
-  an applier there is no name rather than leaving it to guess.
+  The adapter builds one viewer fact per model fact, so there is exactly one fact
+  to name and no choice left for the applier to make. (Journal version 1 named
+  the occurrence by a separate `factValueName`; an applier refuses version 1.)
+  `factName` is `null` for a report with no model behind it (the plain iXBRL
+  path), which tells an applier there is no name rather than leaving it to guess.
 - `derivation` is present only where the user accepted one — how the located
   text becomes the asserted value, as `scale` / `sign` / `transformation`.
 - `previous` is `null` for a bind and carries the displaced sources for a

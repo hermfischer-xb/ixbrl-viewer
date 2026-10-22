@@ -23,11 +23,11 @@
  */
 
 /*
- * The value-derivation properties of a factValue: how the located source text
+ * The value-derivation properties of a fact: how the located source text
  * becomes the asserted value.
  *
- * Scoped to derivation on purpose.  The identity properties -- factDimensions,
- * factQualifier, period, entity -- answer "which fact is this", and editing
+ * Scoped to derivation on purpose.  The identity properties -- dimensions,
+ * qualifier, period, entity -- answer "which fact is this", and editing
  * them makes a different fact rather than correcting a binding, so they are not
  * offered here.  See TAGGER.md 1.
  */

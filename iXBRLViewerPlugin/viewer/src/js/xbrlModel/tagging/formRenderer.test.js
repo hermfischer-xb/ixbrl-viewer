@@ -154,8 +154,8 @@ describe("the stand-in descriptor", () => {
         expect(keys).toEqual(
             expect.arrayContaining(['transformation', 'scale', 'sign', 'decimals', 'escape']));
         // editing these would make it a different fact, not correct a binding
-        expect(keys).not.toContain('factDimensions');
-        expect(keys).not.toContain('factQualifier');
+        expect(keys).not.toContain('dimensions');
+        expect(keys).not.toContain('qualifier');
     });
 
     test("uses only widget types the creator's vocabulary declares", () => {

@@ -127,25 +127,25 @@ describe("TaggingJournal", () => {
         const j = new TaggingJournal();
         const e = j.bind(bindArgs({
             factId: "pf-3",
-            factName: "msft:fs_F_bc502677",
-            factValueName: "msft:F_bc502677_val",
+            factName: "msft:F_bc502677",
         }));
         expect(e.factId).toBe("pf-3");
-        expect(e.factName).toBe("msft:fs_F_bc502677");
-        expect(e.factValueName).toBe("msft:F_bc502677_val");
-        expect(JSON.parse(j.serialise()).entries[0].factName).toBe("msft:fs_F_bc502677");
+        expect(e.factName).toBe("msft:F_bc502677");
+        expect(JSON.parse(j.serialise()).entries[0].factName).toBe("msft:F_bc502677");
     });
 
-    test("a fact occurring several times names the occurrence bound", () => {
+    test("a data point occurring several times names the occurrence bound", () => {
         // Microsoft's total revenue is on pages 49, 84 (twice) and 85, each its
-        // own factValue and its own viewer fact, so an entry names the one it
-        // bound rather than leaving the applier to pick.
+        // own fact and its own viewer fact, so an entry names the one it bound
+        // rather than leaving the applier to pick -- and carries no
+        // factValueName, which journal version 1 used for that.
         const e = new TaggingJournal().bind(bindArgs({
             factId: "pf-236",
-            factName: "msft:fs_F_54f7ed46",
-            factValueName: "msft:F_f1293a51_val",
+            factName: "msft:F_f1293a51",
         }));
-        expect(e.factValueName).toBe("msft:F_f1293a51_val");
+        expect(e.factName).toBe("msft:F_f1293a51");
+        expect(e.factValueName).toBeUndefined();
+        expect(JSON.parse(new TaggingJournal().serialise()).journalVersion).toBe(2);
     });
 
     test("a report with no model behind it names what it can", () => {
@@ -153,7 +153,6 @@ describe("TaggingJournal", () => {
         // valid, and an applier is told there is no name rather than guessing
         const e = new TaggingJournal().bind(bindArgs());
         expect(e.factName).toBeNull();
-        expect(e.factValueName).toBeNull();
     });
 
     test("rejects entries missing their required parts", () => {

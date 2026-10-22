@@ -4,8 +4,8 @@ import { gridHeaderCells, buildGrid, gridLayoutTables } from './gridLayout.js';
 
 const fact = (name, dimensions, value = '1') => ({
     name,
-    factDimensions: { 'xbrl:entity': 'lei:E', 'xbrl:period': '2027-01-01T00:00:00', ...dimensions },
-    factValues: [{ name: `${name}_fv`, value }],
+    dimensions: { 'xbrl:entity': 'lei:E', 'xbrl:period': '2027-01-01T00:00:00', ...dimensions },
+    value,
 });
 
 describe('gridHeaderCells', () => {

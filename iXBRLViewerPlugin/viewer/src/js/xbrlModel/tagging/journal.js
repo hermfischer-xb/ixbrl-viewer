@@ -14,7 +14,12 @@
  * allowedProperties), so applying an entry is an attach, not a translation.
  */
 
-export const JOURNAL_VERSION = 1;
+/*
+ * Version 2: an entry names the bound occurrence by factName.  Since the fact value
+ * object was collapsed into the fact, a fact is one occurrence; version 1 named the
+ * occurrence by factValueName, and an applier refuses it.
+ */
+export const JOURNAL_VERSION = 2;
 
 /*
  * Verdicts compare what the model asserts against what was actually clicked.
@@ -169,7 +174,7 @@ export class TaggingJournal {
      * first bind, the displaced properties for a rebind -- which is what makes
      * an entry reversible without consulting the model.
      */
-    bind({ factId, factName = null, factValueName = null, locatorType, sources, properties,
+    bind({ factId, factName = null, locatorType, sources, properties,
            capturedText, factValue, previous = null, derivation = null }) {
         if (!factId) {
             throw new Error("journal: factId is required");
@@ -212,17 +217,14 @@ export class TaggingJournal {
              * document, where every fact starts unlocated -- so an entry that
              * named only the viewer id would not survive it.
              *
-             * factValueName is the occurrence being bound.  A factValue is one
-             * occurrence of the fact in the document rather than one value of it
-             * -- Microsoft's total revenue has four, agreeing on the value while
+             * A fact is one occurrence of a data point in the document --
+             * Microsoft's total revenue is four facts, agreeing on the value while
              * differing in presentation -- and the adapter builds one viewer fact
-             * per occurrence, so there is exactly one to name and no choice left
-             * for the applier to make.  Null for an unlocated fact the model gave
-             * no factValue, and for a report with no model behind it (the plain
-             * iXBRL path).
+             * per model fact, so the name leaves no choice for the applier to
+             * make.  Null for a report with no model behind it (the plain iXBRL
+             * path).
              */
             factName,
-            factValueName,
             previous,
             locatorType,
             sources: list,
