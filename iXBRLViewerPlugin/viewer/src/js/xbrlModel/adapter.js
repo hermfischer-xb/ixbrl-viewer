@@ -351,12 +351,12 @@ function collectDimensionConcepts(taxonomy) {
     return { explicit, typed };
 }
 
-// Locators live in the properties of a fact's valueSources.  Without a value (Form A)
-// the document text is the source of truth and the value is derived from it; with a
-// value (Form B), or on a nil fact, the value sources only locate the fact in the
-// document.  Both forms carry the same locator properties.
+// Locators are the source locators (`sources`) of a fact's valueSource, each with its
+// own locator properties.  Without a value (Form A) the document text is the source of
+// truth and the value is derived from it; with a value (Form B), or on a nil fact, the
+// value source only locates the fact in the document.
 function factLocators(fact) {
-    return fact.valueSources ?? [];
+    return fact.valueSource?.sources ?? [];
 }
 
 function htmlElementIdsForFact(fact) {
@@ -587,9 +587,9 @@ function buildFacts(factset, resolvedValues = {}, pointerContext = {}) {
         const presentation = {
             value: fact.value ?? null,
             decimals: fact.decimals,
-            scale: fact.scale,
-            sign: fact.sign,
-            transformation: fact.transformation,
+            scale: fact.valueSource?.scale,
+            sign: fact.valueSource?.sign,
+            transformation: fact.valueSource?.transformation,
         };
 
         const makeFactData = () => {
@@ -616,8 +616,9 @@ function buildFacts(factset, resolvedValues = {}, pointerContext = {}) {
              * one (223 KB of 1.1 MB were it copied, on the Microsoft PDF
              * factset).
              */
-            if (Array.isArray(fact.valueSources) && fact.valueSources.length > 0) {
-                factData.vs = fact.valueSources;
+            const locators = factLocators(fact);
+            if (locators.length > 0) {
+                factData.vs = locators;
             }
             if (decimals !== undefined) {
                 factData.d = decimals;
@@ -675,7 +676,7 @@ function buildFacts(factset, resolvedValues = {}, pointerContext = {}) {
         // document) or bound as derived content.  Keyed by a synthesised id,
         // like the PDF facts, since the target has no element id to key by;
         // the surface resolves them before it decorates the document.
-        const ownPointers = sourceMatchesDocument(sourceUrls[fact.reportSource], documentFile)
+        const ownPointers = sourceMatchesDocument(sourceUrls[fact.valueSource?.reportSource], documentFile)
             ? pointerSourcesForFact(fact) : [];
         const pointerSources = ownPointers.length > 0 ? ownPointers : (boundPointers[fact.name] ?? []);
         if (pointerSources.length > 0) {

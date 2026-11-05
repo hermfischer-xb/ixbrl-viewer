@@ -66,8 +66,8 @@ describe("resolved values from derived content", () => {
         xbrlModel: { facts: [{
             name: "eg:F1",
             dimensions: { "xbrl:concept": "eg:Revenue", "xbrl:unit": "iso4217:USD" },
-            valueSources: [{ properties: [
-                { property: "xbrl:htmlElementId", value: ["e1"] }] }],
+            valueSource: { sources: [{ properties: [
+                { property: "xbrl:htmlElementId", value: ["e1"] }] }] },
         }] },
         derivedContent: { factValues },
     });
@@ -145,7 +145,7 @@ describe("positional HTML locators", () => {
         { property: "xbrlx:htmlTextQuote", value: [quote] },
     ] });
     const idSource = (id) => ({ properties: [{ property: "xbrl:htmlElementId", value: [id] }] });
-    // a fact with a value: its valueSources only locate it
+    // a fact with a value: its value source only locates it
     const fact = (localName, props) => ({
         name: "eg:" + localName,
         dimensions: { "xbrl:concept": "eg:Revenue", "xbrl:unit": "iso4217:USD" },
@@ -156,7 +156,7 @@ describe("positional HTML locators", () => {
         buildReportData(doc, doc, { documentFile }).sourceReports[0].targetReports[0].facts;
 
     test("a fact's own pointer locator is kept for the surface to resolve", () => {
-        const doc = { xbrlModel: { facts: [fact("f1", { valueSources: [pointer("/1/2", 14, "281,724")] })] } };
+        const doc = { xbrlModel: { facts: [fact("f1", { valueSource: { sources: [pointer("/1/2", 14, "281,724")] } })] } };
         const facts = factsOf(doc, "ar.html");
         expect(Object.keys(facts)).toEqual(["xf-0"]);
         expect(facts["xf-0"].html[0].properties[0].value).toEqual(["/1/2"]);
@@ -167,8 +167,8 @@ describe("positional HTML locators", () => {
             documentInfo: { sourceMappings: [
                 { sourceName: "eg:filed", url: "filed.htm" },
                 { sourceName: "eg:web", url: "ar.html" }] },
-            xbrlModel: { facts: [fact("f1", { reportSource: "eg:web",
-                                             valueSources: [pointer("/1/2", 14, "281,724")] })] },
+            xbrlModel: { facts: [fact("f1", { valueSource: { reportSource: "eg:web",
+                                             sources: [pointer("/1/2", 14, "281,724")] } })] },
         };
         expect(Object.keys(factsOf(doc, "ar.html"))).toEqual(["xf-0"]);
         expect(Object.keys(factsOf(doc, "filed.htm"))).toEqual(["hf-0"]);
@@ -176,7 +176,7 @@ describe("positional HTML locators", () => {
 
     test("a bound derived locator places the filed fact on the derived surface", () => {
         const doc = {
-            xbrlModel: { facts: [fact("f1", { valueSources: [idSource("F_1")] })] },
+            xbrlModel: { facts: [fact("f1", { valueSource: { sources: [idSource("F_1")] } })] },
             derivedContent: {
                 reportSource: { url: "ar.html", factLocatorType: "xbrlx:htmlPointerLocatorType" },
                 factValues: [{ factName: "eg:f1", basis: "bound",

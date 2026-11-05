@@ -184,7 +184,7 @@ export class TaggingJournal {
         }
         /*
          * Sources are an ordered list, because a fact value can be assembled
-         * from several fragments of the document -- the spec has valueSources
+         * from several fragments of the document -- the spec has a valueSource's sources
          * contribute "by concatenation" -- and a split number needs exactly
          * that.  A single `properties` bag is accepted as the one-fragment
          * shorthand and wrapped, so the common case stays terse.

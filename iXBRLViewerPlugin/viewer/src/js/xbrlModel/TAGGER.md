@@ -271,7 +271,7 @@ model change.
 Notes on the shape:
 
 - `sources` is an **ordered list** of `factValueSourceObject`s, matching
-  `fact.valueSources`, whose fragments contribute *by concatenation*. A
+  `fact.valueSource.sources`, whose fragments contribute *by concatenation*. A
   number set with the thousands separator as a gap can occupy two
   marked-content runs, so one value legitimately has several sources; a single
   bag is accepted as the one-fragment shorthand and wrapped. Each element is

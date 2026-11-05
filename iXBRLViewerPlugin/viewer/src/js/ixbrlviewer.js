@@ -568,7 +568,7 @@ export class iXBRLViewer {
         // document and surface selection: a factset may list several
         // sourceMappings (e.g. an html source plus the pdf), so pick by fact
         // locators rather than assuming the first mapping.
-        const hasPdfFacts = (m.facts ?? []).some(f => (f.valueSources ?? []).some(vs =>
+        const hasPdfFacts = (m.facts ?? []).some(f => (f.valueSource?.sources ?? []).some(vs =>
             (vs.properties ?? []).some(p => (p.property ?? "").startsWith("xbrl:pdf"))));
 
         // A report with no document of its own, such as a prudential report, is shown in the

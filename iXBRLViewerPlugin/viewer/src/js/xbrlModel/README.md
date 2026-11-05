@@ -52,7 +52,7 @@ seams were added:
      locators is resolved to its text run first, on the pristine tree, and each
      run is wrapped in a span of its own.
    - `PdfDocumentSurface` handles the PDF locator types defined by the spec
-     (`fact.reportSource` → `factSource` → `factMap` → `factLocatorType`):
+     (`fact.valueSource.reportSource` → `factSource` → `factMap` → `factLocatorType`):
      - **content** (`xbrl:pdfContentLocatorType`: `xbrl:pdfPage` + `xbrl:pdfMcid`)
        — builds a marked-content-id → rectangle map per page from
        `getTextContent({ includeMarkedContent: true })` and lays one
@@ -451,8 +451,8 @@ to highlight on mismatch**: the quote exists so a regenerated document is
 detected rather than silently mis-addressed (`tagging/resolveLocator.js`).
 
 **Showing them.** `htmlDocumentSurface` binds a fact by its pointer locators when
-they were made for the document being viewed: the fact's own, where its
-`reportSource` names that document (or names none), or else a `bound` entry in
+they were made for the document being viewed: the fact's own, where its value
+source's `reportSource` names that document (or names none), or else a `bound` entry in
 `derivedContent.factValues` whose `derivedContent.reportSource` is that document.
 That second form is how somebody other than the filer records where the filed
 facts appear on, say, the company's web page, while the model stays as filed. All

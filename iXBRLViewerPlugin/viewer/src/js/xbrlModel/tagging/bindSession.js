@@ -193,7 +193,7 @@ export class BindSession {
      * A PDF that sets "41 182,5" with the thousands separator as a gap can put
      * "41" and "182,5" in separate marked-content runs, so one click can only
      * ever reach half the value.  The model already accommodates this -- a
-     * factValue's valueSources are ordered and contribute by concatenation --
+     * fact's valueSource sources are ordered and contribute by concatenation --
      * so joining fragments needs no new concept, only a gesture.
      *
      * Ordered by the order they were added, which is the order they concatenate
